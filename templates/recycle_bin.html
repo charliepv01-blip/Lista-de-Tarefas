@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Lixeira</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="logo">Minhas Tarefas</div>
+            <nav class="nav-links">
+                <a href="{{ url_for('index') }}" class="nav-item"><i class="fas fa-home"></i> Início</a>
+                <a href="{{ url_for('calendar') }}" class="nav-item"><i class="fas fa-calendar-alt"></i> Agenda</a>
+                <a href="{{ url_for('categories') }}" class="nav-item"><i class="fas fa-tags"></i> Categorias</a>
+                <a href="{{ url_for('notes_page') }}" class="nav-item"><i class="fas fa-sticky-note"></i> Notas</a>
+                <a href="{{ url_for('recycle_bin') }}" class="nav-item active"><i class="fas fa-trash-alt"></i> Lixeira</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header>
+                <h2>Lixeira</h2>
+            </header>
+
+            <h3>Tarefas Excluídas</h3>
+            <ul class="task-list">
+                {% if deleted_tasks %}
+                    {% for task in deleted_tasks %}
+                        <li class="task-item">
+                            <div class="task-item-main">
+                                <span class="task-name">{{ task.task }}</span>
+                                <div class="task-actions">
+                                    <a href="#edit-deleted-modal-{{ task.id }}" class="edit-button"><i class="fas fa-pencil-alt"></i></a>
+                                    <a href="{{ url_for('restore_task', task_id=task.id) }}" class="restore-button"><i class="fas fa-undo"></i></a>
+                                    <a href="{{ url_for('purge_task', task_id=task.id) }}" class="purge-button"><i class="fas fa-times-circle"></i></a>
+                                </div>
+                            </div>
+                        </li>
+
+                        <div id="edit-deleted-modal-{{ task.id }}" class="modal">
+                            <div class="modal-content">
+                                <a href="#" class="close-modal">&times;</a>
+                                <h2>Editar Tarefa Deletada</h2>
+                                <form action="{{ url_for('edit_deleted_task', task_id=task.id) }}" method="post">
+                                    <input type="text" name="task" value="{{ task.task }}" required>
+                                    <button type="submit">Salvar</button>
+                                </form>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>Nenhuma tarefa na lixeira.</p>
+                {% endif %}
+            </ul>
+
+            <h3 class="notes-heading">Notas Excluídas</h3>
+            <ul class="notes-list">
+                {% if deleted_notes %}
+                    {% for note in deleted_notes %}
+                        <li class="note-item">
+                            <p>{{ note.text }}</p>
+                            <div class="note-actions">
+                                <a href="{{ url_for('restore_note', note_id=note.id) }}" class="restore-button"><i class="fas fa-undo"></i></a>
+                                <form action="{{ url_for('purge_note', note_id=note.id) }}" method="post" style="display:inline;">
+                                    <button type="submit" class="delete-button" onclick="return confirm('Tem certeza que deseja excluir esta nota permanentemente?');">
+                                        <i class="fas fa-times-circle"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </li>
+                    {% endfor %}
+                {% else %}
+                    <p>Nenhuma nota na lixeira.</p>
+                {% endif %}
+            </ul>
+        </main>
+    </div>
+
+    <script>
+        document.querySelectorAll('.edit-button').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const modalId = this.getAttribute('href').substring(1);
+                document.getElementById(modalId).style.display = 'block';
+            });
+        });
+
+        document.querySelectorAll('.modal .close-modal').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                this.closest('.modal').style.display = 'none';
+            });
+        });
+
+        window.addEventListener('click', function(e) {
+            document.querySelectorAll('.modal').forEach(modal => {
+                if (e.target == modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+
+
