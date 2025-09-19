@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Notas</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="logo">Minhas Tarefas</div>
+            <nav class="nav-links">
+                <a href="{{ url_for('index') }}" class="nav-item"><i class="fas fa-home"></i> Início</a>
+                <a href="{{ url_for('calendar') }}" class="nav-item"><i class="fas fa-calendar-alt"></i> Agenda</a>
+                <a href="{{ url_for('categories') }}" class="nav-item"><i class="fas fa-tags"></i> Categorias</a>
+                <a href="{{ url_for('notes_page') }}" class="nav-item active"><i class="fas fa-sticky-note"></i> Notas</a>
+                <a href="{{ url_for('recycle_bin') }}" class="nav-item"><i class="fas fa-trash-alt"></i> Lixeira</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header>
+                <h2>Notas</h2>
+                <a href="#add-note-modal" class="add-button">+ Adicionar nota</a>
+            </header>
+
+            <ul class="notes-list">
+                {% if notes %}
+                    {% for note in notes %}
+                        <li class="note-item">
+                            <p>{{ note.text }}</p>
+                            <div class="note-actions">
+                                <a href="#edit-note-modal-{{ note.id }}" class="edit-button"><i class="fas fa-pencil-alt"></i></a>
+                                <a href="{{ url_for('delete_note', note_id=note.id) }}" class="delete-button"><i class="fas fa-trash-alt"></i></a>
+                            </div>
+                        </li>
+
+                        <div id="edit-note-modal-{{ note.id }}" class="modal">
+                            <div class="modal-content">
+                                <a href="#" class="close-modal">&times;</a>
+                                <h2>Editar Nota</h2>
+                                <form action="{{ url_for('edit_note', note_id=note.id) }}" method="post">
+                                    <textarea name="note" required>{{ note.text }}</textarea>
+                                    <button type="submit">Salvar</button>
+                                </form>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>Nenhuma nota encontrada.</p>
+                {% endif %}
+            </ul>
+        </main>
+    </div>
+
+    <div id="add-note-modal" class="modal">
+        <div class="modal-content">
+            <a href="#" class="close-modal">&times;</a>
+            <h2>Adicionar nova nota</h2>
+            <form action="{{ url_for('add_note') }}" method="post">
+                <textarea name="note" placeholder="Escreva sua nota aqui..." required></textarea>
+                <button type="submit">Adicionar</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.querySelector('a[href="#add-note-modal"]').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('add-note-modal').style.display = 'block';
+        });
+
+        document.querySelectorAll('.edit-button').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const modalId = this.getAttribute('href').substring(1);
+                document.getElementById(modalId).style.display = 'block';
+            });
+        });
+
+        document.querySelectorAll('.modal .close-modal').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                this.closest('.modal').style.display = 'none';
+            });
+        });
+
+        window.addEventListener('click', function(e) {
+            document.querySelectorAll('.modal').forEach(modal => {
+                if (e.target == modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
