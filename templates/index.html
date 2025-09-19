@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Minha Lista de Tarefas</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="logo">Minhas Tarefas</div>
+            <nav class="nav-links">
+                <a href="{{ url_for('index') }}" class="nav-item active"><i class="fas fa-home"></i> Início</a>
+                <a href="{{ url_for('calendar') }}" class="nav-item"><i class="fas fa-calendar-alt"></i> Agenda</a>
+                <a href="{{ url_for('categories') }}" class="nav-item"><i class="fas fa-tags"></i> Categorias</a>
+                <a href="{{ url_for('notes_page') }}" class="nav-item"><i class="fas fa-sticky-note"></i> Notas</a>
+                <a href="{{ url_for('recycle_bin') }}" class="nav-item"><i class="fas fa-trash-alt"></i> Lixeira</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header>
+                <h2>Minhas Tarefas</h2>
+                <a href="#add-task-modal" class="add-button">+ Adicionar tarefa</a>
+            </header>
+
+            {% if upcoming_tasks %}
+            <div class="notification-banner">
+                <i class="fas fa-bell"></i>
+                <p>
+                    Você tem tarefas que vencem em breve:
+                    {% for task in upcoming_tasks %}
+                        <strong>{{ task.task }}</strong> {% if not loop.last %}, {% endif %}
+                    {% endfor %}
+                </p>
+            </div>
+            {% endif %}
+
+            <div class="search-bar">
+                <form action="{{ url_for('search_tasks') }}" method="get">
+                    <input type="text" name="query" placeholder="Buscar tarefas..." class="search-input">
+                    <button type="submit" class="search-button"><i class="fas fa-search"></i></button>
+                </form>
+            </div>
+
+            <div class="filters">
+                <form id="filter-form" action="{{ url_for('index') }}" method="get">
+                    <h3><i class="fas fa-filter"></i> Filtros</h3>
+                    <div class="filter-group">
+                        <label for="category-filter">Categoria</label>
+                        <select name="category" id="category-filter" onchange="this.form.submit()">
+                            <option value="Todas as categorias">Todas as categorias</option>
+                            {% for category in categories %}
+                                <option value="{{ category }}">{{ category }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="priority-filter">Prioridade</label>
+                        <select name="priority" id="priority-filter" onchange="this.form.submit()">
+                            <option value="Todas as prioridades">Todas as prioridades</option>
+                            {% for priority in priorities %}
+                                <option value="{{ priority }}">{{ priority }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="status-filter">Status</label>
+                        <select name="status" id="status-filter" onchange="this.form.submit()">
+                            <option value="Todas as tarefas">Todas as tarefas</option>
+                            <option value="Pendente">Pendente</option>
+                            <option value="Concluída">Concluída</option>
+                        </select>
+                    </div>
+                </form>
+                <div class="sort-options">
+                    <h3><i class="fas fa-sort"></i> Ordenar por:</h3>
+                    <a href="{{ url_for('index', sort_by='priority', category=request.args.get('category'), priority=request.args.get('priority'), status=request.args.get('status')) }}" class="sort-button">Prioridade</a>
+                    <a href="{{ url_for('index', sort_by='due_date', category=request.args.get('category'), priority=request.args.get('priority'), status=request.args.get('status')) }}" class="sort-button">Data de Vencimento</a>
+                    <a href="{{ url_for('index', sort_by='progress', category=request.args.get('category'), priority=request.args.get('priority'), status=request.args.get('status')) }}" class="sort-button">Progresso</a>
+                </div>
+            </div>
+
+            <div class="quick-stats">
+                <h3><i class="fas fa-chart-pie"></i> Estatísticas rápidas</h3>
+                <div class="stat-card">
+                    <i class="fas fa-list-ul"></i>
+                    <h4>Total</h4>
+                    <span>{{ total_tasks }}</span>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-hourglass-half"></i>
+                    <h4>Pendente</h4>
+                    <span>{{ pending_tasks }}</span>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-check-circle"></i>
+                    <h4>Feito</h4>
+                    <span>{{ completed_tasks }}</span>
+                </div>
+            </div>
+
+            <a href="{{ url_for('check_recurring') }}" class="button-check-recurring">
+                Verificar Tarefas Recorrentes
+            </a>
+
+            <ul class="task-list">
+                {% if tasks %}
+                    {% for task in tasks %}
+                        <li class="task-item {{ 'done' if task.status == 'Concluída' }}">
+                            <div class="task-item-main">
+                                <a href="{{ url_for('done_task', task_id=task.id) }}" class="status-indicator">
+                                    {% if task.status == 'Concluída' %}
+                                        <i class="fas fa-check-square"></i>
+                                    {% else %}
+                                        <i class="far fa-square"></i>
+                                    {% endif %}
+                                </a>
+                                <div class="task-details">
+                                    <span class="task-name">{{ task.task }}</span>
+                                    <div class="task-meta">
+                                        <span class="category">{{ task.category }}</span> |
+                                        <span class="priority">{{ task.priority }}</span>
+                                        {% if task.due_date %}
+                                        | Vence em: {{ task.due_date }}
+                                        {% endif %}
+                                    </div>
+                                    {% if task.subtasks %}
+                                    <div class="progress-bar-container">
+                                        <div class="progress-bar" style="width: {{ task.progress }}%;"></div>
+                                    </div>
+                                    <span class="progress-label">{{ task.progress }}% concluído</span>
+                                    {% endif %}
+                                </div>
+                                <div class="task-actions">
+                                    <a href="#edit-modal-{{ task.id }}" class="edit-button"><i class="fas fa-pencil-alt"></i></a>
+                                    <form action="{{ url_for('delete_task', task_id=task.id) }}" method="post" style="display:inline;">
+                                        <button type="submit" class="delete-button" onclick="return confirm('Tem certeza que deseja excluir esta tarefa?');">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            {% if task.attachments %}
+                            <div class="attachment-list">
+                                {% for attachment in task.attachments %}
+                                    {% if attachment.type == 'file' %}
+                                    <a href="{{ url_for('uploaded_file', filename=attachment.name) }}" class="attachment-item" target="_blank" rel="noopener noreferrer">
+                                        <i class="fas fa-file"></i> {{ attachment.name }}
+                                    </a>
+                                    {% elif attachment.type == 'link' %}
+                                    <a href="{{ attachment.url }}" class="attachment-item" target="_blank" rel="noopener noreferrer">
+                                        <i class="fas fa-link"></i> {{ attachment.name }}
+                                    </a>
+                                    {% endif %}
+                                    <a href="{{ url_for('delete_attachment', task_id=task.id, attachment_index=loop.index0) }}" class="delete-attachment-button"><i class="fas fa-times-circle"></i></a>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            <div class="add-attachments-section">
+                                <a href="#add-attachment-modal-{{ task.id }}" class="add-attachment-button">
+                                    <i class="fas fa-paperclip"></i> Adicionar anexo
+                                </a>
+                            </div>
+
+                            <ul class="subtask-list">
+                                {% for subtask in task.subtasks %}
+                                    <li class="{{ 'done' if subtask.done }}">
+                                        <a href="{{ url_for('done_subtask', task_id=task.id, subtask_id=subtask.id) }}">
+                                            {{ "✓ " if subtask.done else "☐ " }} {{ subtask.task }}
+                                        </a>
+                                        <div class="subtask-actions">
+                                            <a href="#edit-subtask-modal-{{ task.id }}-{{ subtask.id }}" class="edit-subtask-button"><i class="fas fa-pencil-alt"></i></a>
+                                            <a href="{{ url_for('delete_subtask', task_id=task.id, subtask_id=subtask.id) }}" class="delete-subtask-button"><i class="fas fa-trash-alt"></i></a>
+                                        </div>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+
+                            <form action="{{ url_for('add_subtask', task_id=task.id) }}" method="post" class="add-subtask-form">
+                                <input type="text" name="subtask" placeholder="Adicionar sub-tarefa..." required>
+                                <button type="submit">+</button>
+                            </form>
+                        </li>
+                    {% endfor %}
+                {% else %}
+                    <p>Nenhuma tarefa encontrada.</p>
+                {% endif %}
+            </ul>
+
+            {% for task in tasks %}
+            <div id="edit-modal-{{ task.id }}" class="modal">
+                <div class="modal-content">
+                    <a href="#" class="close-modal">&times;</a>
+                    <h2>Editar Tarefa</h2>
+                    <form action="{{ url_for('edit_task', task_id=task.id) }}" method="post">
+                        <input type="text" name="task" value="{{ task.task }}" required>
+                        <input type="date" name="due_date" value="{{ task.due_date or '' }}">
+                        <select name="category" required>
+                            <option value="{{ task.category }}" selected>{{ task.category }}</option>
+                            <option value="Trabalho">Trabalho</option>
+                            <option value="Estudos">Estudos</option>
+                            <option value="Pessoal">Pessoal</option>
+                        </select>
+                        <select name="priority" required>
+                            <option value="{{ task.priority }}" selected>{{ task.priority }}</option>
+                            <option value="Alta">Alta</option>
+                            <option value="Média">Média</option>
+                            <option value="Baixa">Baixa</option>
+                        </select>
+                        <select name="recurrence">
+                            <option value="Nenhum" {% if task.recurrence == "Nenhum" %}selected{% endif %}>Não se repete</option>
+                            <option value="Diário" {% if task.recurrence == "Diário" %}selected{% endif %}>Diário</option>
+                            <option value="Semanal" {% if task.recurrence == "Semanal" %}selected{% endif %}>Semanal</option>
+                            <option value="Mensal" {% if task.recurrence == "Mensal" %}selected{% endif %}>Mensal</option>
+                            <option value="Anual" {% if task.recurrence == "Anual" %}selected{% endif %}>Anual</option>
+                        </select>
+                        <button type="submit">Salvar</button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="add-attachment-modal-{{ task.id }}" class="modal">
+                <div class="modal-content">
+                    <a href="#" class="close-modal">&times;</a>
+                    <h2>Adicionar Anexo</h2>
+                    <form action="{{ url_for('add_attachment', task_id=task.id) }}" method="post" enctype="multipart/form-data">
+                        <label for="file">Anexar Arquivo:</label>
+                        <input type="file" id="file" name="file">
+                        <label for="link">Anexar Link:</label>
+                        <input type="text" id="link" name="link" placeholder="Cole o URL aqui...">
+                        <button type="submit">Anexar</button>
+                    </form>
+                </div>
+            </div>
+
+            {% for subtask in task.subtasks %}
+            <div id="edit-subtask-modal-{{ task.id }}-{{ subtask.id }}" class="modal">
+                <div class="modal-content">
+                    <a href="#" class="close-modal">&times;</a>
+                    <h2>Editar Sub-tarefa</h2>
+                    <form action="{{ url_for('edit_subtask', task_id=task.id, subtask_id=subtask.id) }}" method="post">
+                        <input type="text" name="subtask" value="{{ subtask.task }}" required>
+                        <button type="submit">Salvar</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+
+            {% endfor %}
+        </main>
+    </div>
+
+    <div id="add-task-modal" class="modal">
+        <div class="modal-content">
+            <a href="#" class="close-modal">&times;</a>
+            <h2>Adicionar nova tarefa</h2>
+            <form action="/add" method="post">
+                <input type="text" name="task" placeholder="Descrição da tarefa" required>
+                <input type="date" name="due_date">
+                <select name="category" required>
+                    <option value="" disabled selected>Selecionar categoria</option>
+                    <option value="Trabalho">Trabalho</option>
+                    <option value="Estudos">Estudos</option>
+                    <option value="Pessoal">Pessoal</option>
+                </select>
+                <select name="priority" required>
+                    <option value="" disabled selected>Selecionar prioridade</option>
+                    <option value="Alta">Alta</option>
+                    <option value="Média">Média</option>
+                    <option value="Baixa">Baixa</option>
+                </select>
+                <select name="recurrence">
+                    <option value="Nenhum" selected>Não se repete</option>
+                    <option value="Diário">Diário</option>
+                    <option value="Semanal">Semanal</option>
+                    <option value="Mensal">Mensal</option>
+                    <option value="Anual">Anual</option>
+                </select>
+                <button type="submit">Adicionar</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.querySelector('a[href="#add-task-modal"]').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('add-task-modal').style.display = 'block';
+        });
+
+        document.querySelectorAll('.add-attachment-button').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const modalId = this.getAttribute('href').substring(1);
+                document.getElementById(modalId).style.display = 'block';
+            });
+        });
+
+        document.querySelectorAll('.edit-button').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const modalId = this.getAttribute('href').substring(1);
+                document.getElementById(modalId).style.display = 'block';
+            });
+        });
+
+        document.querySelectorAll('.modal .close-modal').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                this.closest('.modal').style.display = 'none';
+            });
+        });
+
+        window.addEventListener('click', function(e) {
+            document.querySelectorAll('.modal').forEach(modal => {
+                if (e.target == modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        });
+
+        document.querySelectorAll('.edit-subtask-button').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const modalId = this.getAttribute('href').substring(1);
+                document.getElementById(modalId).style.display = 'block';
+            });
+        });
+    </script>
+</body>
+</html>
+
+
