@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Categorias</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="logo">Minhas Tarefas</div>
+            <nav class="nav-links">
+                <a href="{{ url_for('index') }}" class="nav-item"><i class="fas fa-home"></i> Início</a>
+                <a href="{{ url_for('calendar') }}" class="nav-item"><i class="fas fa-calendar-alt"></i> Agenda</a>
+                <a href="{{ url_for('categories') }}" class="nav-item active"><i class="fas fa-tags"></i> Categorias</a>
+                <a href="{{ url_for('notes_page') }}" class="nav-item"><i class="fas fa-sticky-note"></i> Notas</a>
+                <a href="{{ url_for('recycle_bin') }}" class="nav-item"><i class="fas fa-trash-alt"></i> Lixeira</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header>
+                <h2>Categorias</h2>
+                <a href="#add-category-modal" class="add-button">+ Adicionar categoria</a>
+            </header>
+
+            <div class="category-tasks-container">
+                {% for category_name, tasks_list in grouped_tasks.items() %}
+                <section class="category-section">
+                    <div class="category-header">
+                        <i class="fas fa-folder"></i>
+                        <h3>{{ category_name }}</h3>
+                        <div class="card-actions">
+                            {% for category in categories_data %}
+                                {% if category.name == category_name %}
+                                    <a href="#edit-category-modal-{{ category.id }}" class="edit-button"><i class="fas fa-pencil-alt"></i></a>
+                                    <form action="{{ url_for('delete_category', category_id=category.id) }}" method="post" style="display:inline;">
+                                        <button type="submit" class="delete-button" onclick="return confirm('Tem certeza que deseja excluir esta categoria? Isso irá desvincular todas as tarefas associadas.');">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <ul class="task-list">
+                        {% if tasks_list %}
+                            {% for task in tasks_list %}
+                                <li class="task-item {{ 'done' if task.status == 'Concluída' }}">
+                                    <div class="task-item-main">
+                                        <a href="{{ url_for('done_task', task_id=task.id) }}" class="status-indicator">
+                                            {% if task.status == 'Concluída' %}
+                                                <i class="fas fa-check-square"></i>
+                                            {% else %}
+                                                <i class="far fa-square"></i>
+                                            {% endif %}
+                                        </a>
+                                        <div class="task-details">
+                                            <span class="task-name">{{ task.task }}</span>
+                                            <div class="task-meta">
+                                                <span class="priority">{{ task.priority }}</span>
+                                                {% if task.due_date %}
+                                                | Vence em: {{ task.due_date }}
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% if task.attachments %}
+                                    <div class="attachment-list">
+                                        {% for attachment in task.attachments %}
+                                        <a href="{{ url_for('uploaded_file', filename=attachment.name) }}" class="attachment-item" target="_blank" rel="noopener noreferrer">
+                                            <i class="fas fa-file"></i> {{ attachment.name }}
+                                        </a>
+                                        <a href="{{ url_for('delete_attachment', task_id=task.id, attachment_index=loop.index0) }}" class="delete-attachment-button"><i class="fas fa-times-circle"></i></a>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        {% else %}
+                            <p class="no-tasks">Nenhuma tarefa nesta categoria.</p>
+                        {% endif %}
+                    </ul>
+                </section>
+                {% endfor %}
+            </div>
+
+            {% for category in categories_data %}
+            <div id="edit-category-modal-{{ category.id }}" class="modal">
+                <div class="modal-content">
+                    <a href="#" class="close-modal">&times;</a>
+                    <h2>Editar Categoria</h2>
+                    <form action="{{ url_for('edit_category', category_id=category.id) }}" method="post">
+                        <input type="text" name="new_category_name" value="{{ category.name }}" required>
+                        <button type="submit">Salvar</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </main>
+    </div>
+
+    <div id="add-category-modal" class="modal">
+        <div class="modal-content">
+            <a href="#" class="close-modal">&times;</a>
+            <h2>Adicionar nova categoria</h2>
+            <form action="{{ url_for('add_category') }}" method="post">
+                <input type="text" name="category_name" placeholder="Nome da categoria" required>
+                <button type="submit">Adicionar</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.querySelector('a[href="#add-category-modal"]').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('add-category-modal').style.display = 'block';
+        });
+
+        document.querySelectorAll('.edit-button').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const modalId = this.getAttribute('href').substring(1);
+                document.getElementById(modalId).style.display = 'block';
+            });
+        });
+
+        document.querySelectorAll('.modal .close-modal').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                this.closest('.modal').style.display = 'none';
+            });
+        });
+
+        window.addEventListener('click', function(e) {
+            document.querySelectorAll('.modal').forEach(modal => {
+                if (e.target == modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+
+
