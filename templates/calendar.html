@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Agenda</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="logo">Minhas Tarefas</div>
+            <nav class="nav-links">
+                <a href="{{ url_for('index') }}" class="nav-item"><i class="fas fa-home"></i> Início</a>
+                <a href="{{ url_for('calendar') }}" class="nav-item active"><i class="fas fa-calendar-alt"></i> Agenda</a>
+                <a href="{{ url_for('categories') }}" class="nav-item"><i class="fas fa-tags"></i> Categorias</a>
+                <a href="{{ url_for('notes_page') }}" class="nav-item"><i class="fas fa-sticky-note"></i> Notas</a>
+                <a href="{{ url_for('recycle_bin') }}" class="nav-item"><i class="fas fa-trash-alt"></i> Lixeira</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header>
+                <h2>Agenda</h2>
+            </header>
+
+            <div class="calendar-view">
+                {% if sorted_dates %}
+                    {% for date in sorted_dates %}
+                    <div class="calendar-day">
+                        <div class="day-header">
+                            <span class="day-date">{{ date }}</span>
+                        </div>
+                        <ul class="task-list">
+                            {% for task in tasks_by_date[date] %}
+                                <li class="task-item {{ 'done' if task.status == 'Concluída' }}">
+                                    <div class="task-item-main">
+                                        <a href="{{ url_for('done_task', task_id=task.id) }}" class="status-indicator">
+                                            {% if task.status == 'Concluída' %}
+                                                <i class="fas fa-check-square"></i>
+                                            {% else %}
+                                                <i class="far fa-square"></i>
+                                            {% endif %}
+                                        </a>
+                                        <div class="task-details">
+                                            <span class="task-name">{{ task.task }}</span>
+                                            <div class="task-meta">
+                                                <span class="category">{{ task.category }}</span> |
+                                                <span class="priority">{{ task.priority }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p>Nenhuma tarefa agendada.</p>
+                {% endif %}
+            </div>
+        </main>
+    </div>
+</body>
+</html>
